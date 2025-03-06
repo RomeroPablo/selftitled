@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "web/index.html",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "web"
+      }
+    }
+  ],
+  "buildCommand": "wasm-pack build --target web --out-dir ./web/pkg"
+}
