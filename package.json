@@ -2,9 +2,6 @@
   "name": "selftitled",
   "version": "1.0.0",
   "scripts": {
-    "build": "wasm-pack build --target web --out-dir ./web/pkg"
-  },
-  "devDependencies": {
-    "wasm-pack": "^0.12.1"
+    "vercel-build": "npm install wasm-pack && npx wasm-pack build --target web --out-dir ./web/pkg"
   }
 }

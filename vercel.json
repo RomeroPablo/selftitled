@@ -9,5 +9,5 @@
       }
     }
   ],
-  "buildCommand": "wasm-pack build --target web --out-dir ./web/pkg"
+  "buildCommand": "npm run vercel-build"
 }
