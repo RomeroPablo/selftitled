@@ -1,13 +1,5 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "web/index.html",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "web"
-      }
-    }
-  ],
-  "buildCommand": "npm run vercel-build"
+  "buildCommand": "npm run vercel-build",
+  "outputDirectory": "web"
 }
