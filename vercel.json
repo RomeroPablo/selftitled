@@ -1,5 +1,10 @@
 {
   "version": 2,
   "buildCommand": "npm run vercel-build",
-  "outputDirectory": "web"
+  "builds": [
+    {
+      "src": "web/**/*",
+      "use": "@vercel/static"
+    }
+  ]
 }
