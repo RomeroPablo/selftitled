@@ -1,131 +1,46 @@
 use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
-use web_sys::{
-    HtmlCanvasElement, WebGlRenderingContext as GL, WebGlProgram, WebGlShader,
-};
-use js_sys::Date;
+use web_sys::{HtmlCanvasElement, WebGl2RenderingContext as GL};
 
-#[wasm_bindgen(start)]
-pub fn start() {
-    let window = web_sys::window().unwrap();
-    let document = window.document().unwrap();
-
-    let canvas = document
-        .get_element_by_id("canvas")
-        .unwrap()
-        .dyn_into::<HtmlCanvasElement>()
-        .unwrap();
-
-    let gl = canvas
-        .get_context("webgl")
-        .unwrap()
-        .unwrap()
-        .dyn_into::<GL>()
-        .unwrap();
-
-    let vert_shader = compile_shader(
-        &gl,
-        GL::VERTEX_SHADER,
-        r#"
-        attribute vec3 position;
-        uniform float angle;
-        void main() {
-            float c = cos(angle);
-            float s = sin(angle);
-            gl_Position = vec4(
-                position.x * c - position.y * s,
-                position.x * s + position.y * c,
-                position.z,
-                1.0
-            );
-        }
-        "#,
-    ).unwrap();
-
-    let frag_shader = compile_shader(
-        &gl,
-        GL::FRAGMENT_SHADER,
-        r#"
-        void main() {
-            gl_FragColor = vec4(0.8, 0.3, 0.4, 1.0);
-        }
-        "#,
-    ).unwrap();
-
-    let program = link_program(&gl, &vert_shader, &frag_shader).unwrap();
-    gl.use_program(Some(&program));
-
-    let vertices: [f32; 9] = [
-        0.0,  0.5, 0.0,
-       -0.5, -0.5, 0.0,
-        0.5, -0.5, 0.0,
-    ];
-
-    let buffer = gl.create_buffer().unwrap();
-    gl.bind_buffer(GL::ARRAY_BUFFER, Some(&buffer));
-    unsafe {
-        let vertex_array = js_sys::Float32Array::view(&vertices);
-        gl.buffer_data_with_array_buffer_view(GL::ARRAY_BUFFER, &vertex_array, GL::STATIC_DRAW);
-    }
-
-    let position_loc = gl.get_attrib_location(&program, "position") as u32;
-    gl.enable_vertex_attrib_array(position_loc);
-    gl.vertex_attrib_pointer_with_i32(position_loc, 3, GL::FLOAT, false, 0, 0);
-
-    let angle_loc = gl.get_uniform_location(&program, "angle").unwrap();
-
-    // Start the animation loop properly
-    animate(gl, angle_loc);
+#[wasm_bindgen]
+pub struct Renderer {
+    canvas: HtmlCanvasElement,
+    gl: GL,
 }
 
-// Correct animation loop setup
-fn animate(gl: GL, angle_loc: web_sys::WebGlUniformLocation) {
-    //let f = std::rc::Rc::new(std::cell::RefCell::new(None));
-    let f: std::rc::Rc<std::cell::RefCell<Option<Closure<dyn FnMut()>>>> 
-        = std::rc::Rc::new(std::cell::RefCell::new(None));
+#[wasm_bindgen]
+impl Renderer {
+    #[wasm_bindgen(constructor)]
+    pub fn new(canvas_id: &str) -> Result<Renderer, JsValue> {
+        let document = web_sys::window().unwrap().document().unwrap();
 
-    let g = f.clone();
-
-    *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
-        let time = Date::now() as f32 / 1000.0;
-        gl.uniform1f(Some(&angle_loc), time);
-        gl.clear(GL::COLOR_BUFFER_BIT);
-        gl.draw_arrays(GL::TRIANGLES, 0, 3);
-
-        // request next frame
-        web_sys::window()
+        // Get canvas by ID
+        let canvas = document
+            .get_element_by_id(canvas_id)
             .unwrap()
-            .request_animation_frame(f.borrow().as_ref().unwrap().as_ref().unchecked_ref())
-            .unwrap();
-    }) as Box<dyn FnMut()>));
+            .dyn_into::<HtmlCanvasElement>()?;
 
-    web_sys::window()
-        .unwrap()
-        .request_animation_frame(g.borrow().as_ref().unwrap().as_ref().unchecked_ref())
-        .unwrap();
-}
+        // Initialize WebGL2 context
+        let gl: GL = canvas
+            .get_context("webgl2")?
+            .unwrap()
+            .dyn_into()?;
 
-fn compile_shader(gl: &GL, shader_type: u32, source: &str) -> Result<WebGlShader, String> {
-    let shader = gl.create_shader(shader_type).ok_or("Cannot create shader")?;
-    gl.shader_source(&shader, source);
-    gl.compile_shader(&shader);
-
-    if gl.get_shader_parameter(&shader, GL::COMPILE_STATUS).as_bool().unwrap() {
-        Ok(shader)
-    } else {
-        Err(gl.get_shader_info_log(&shader).unwrap())
+        Ok(Renderer { canvas, gl })
     }
-}
 
-fn link_program(gl: &GL, vs: &WebGlShader, fs: &WebGlShader) -> Result<WebGlProgram, String> {
-    let program = gl.create_program().ok_or("Cannot create program")?;
-    gl.attach_shader(&program, vs);
-    gl.attach_shader(&program, fs);
-    gl.link_program(&program);
+    pub fn resize_and_render(&self, width: u32, height: u32) {
+        // Set canvas dimensions
+        self.canvas.set_width(width);
+        self.canvas.set_height(height);
 
-    if gl.get_program_parameter(&program, GL::LINK_STATUS).as_bool().unwrap() {
-        Ok(program)
-    } else {
-        Err(gl.get_program_info_log(&program).unwrap())
+        // Reset viewport and redraw
+        self.gl.viewport(0, 0, width as i32, height as i32);
+        self.render();
+    }
+
+    pub fn render(&self) {
+        // Your drawing logic (currently just clearing to a color)
+        self.gl.clear_color(0.38, 0.24, 0.52, 1.0);
+        self.gl.clear(GL::COLOR_BUFFER_BIT);
     }
 }

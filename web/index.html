@@ -2,13 +2,42 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>sfb</title>
+    <title>selftitled</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
 </head>
 <body>
-    <canvas id="canvas" width="640" height="480"></canvas>
+    <canvas id="canvas"></canvas>
+
     <script type="module">
-        import init from './pkg/selftitled.js';
-        init();
+        import init, { Renderer } from './pkg/selftitled.js';
+
+        async function main() {
+            await init();
+            const canvas = document.getElementById('canvas');
+            const renderer = new Renderer('canvas');
+
+            function resize() {
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+                renderer.resize_and_render(width, height);
+            }
+
+            window.addEventListener('resize', resize);
+
+            // Initial render
+            resize();
+        }
+
+        main();
     </script>
 </body>
 </html>

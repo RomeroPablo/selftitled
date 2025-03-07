@@ -10,9 +10,11 @@ crate-type = ["cdylib"]
 wasm-bindgen = "0.2"
 web-sys = { version = "0.3", features = [
     "Document",
+    "Element",
     "Window",
     "HtmlCanvasElement",
-    "WebGlRenderingContext",
+    "WebGlVertexArrayObject",
+    "WebGl2RenderingContext",
     "WebGlProgram",
     "WebGlShader",
     "WebGlBuffer",
