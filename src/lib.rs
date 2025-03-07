@@ -1,4 +1,5 @@
 use wasm_bindgen::prelude::*;
+use wasm_bindgen::closure::Closure;
 use web_sys::{
     HtmlCanvasElement, WebGlRenderingContext as GL, WebGlProgram, WebGlShader,
 };
@@ -71,26 +72,39 @@ pub fn start() {
 
     let angle_loc = gl.get_uniform_location(&program, "angle").unwrap();
 
-    // Animation loop
-    fn render_loop(gl: GL, angle_loc: web_sys::WebGlUniformLocation) {
-        let closure = Closure::<dyn FnMut()>::new(move || {
-            let time = Date::now() as f32 / 1000.0;
-            gl.uniform1f(Some(&angle_loc), time);
-            gl.clear(GL::COLOR_BUFFER_BIT);
-            gl.draw_arrays(GL::TRIANGLES, 0, 3);
-        });
+    // Start rendering loop
+    render_loop(gl, angle_loc);
+}
 
-        web_sys::window()
-            .unwrap()
-            .set_interval_with_callback_and_timeout_and_arguments_0(
-                closure.as_ref().unchecked_ref(), 
-                16
-            ).unwrap();
-
-        closure.forget();
+// Animation loop using requestAnimationFrame
+fn render_loop(gl: GL, angle_loc: web_sys::WebGlUniformLocation) {
+    fn render(gl: &GL, angle_loc: &web_sys::WebGlUniformLocation) {
+        let time = (Date::now() / 1000.0) as f32;
+        gl.uniform1f(Some(angle_loc), time);
+        gl.clear(GL::COLOR_BUFFER_BIT);
+        gl.draw_arrays(GL::TRIANGLES, 0, 3);
     }
 
-    render_loop(gl, angle_loc);
+    let rc: std::rc::Rc<std::cell::RefCell<Option<Closure<dyn FnMut()>>>> =
+        std::rc::Rc::new(std::cell::RefCell::new(None));
+    let rc_clone = rc.clone();
+
+    *rc_clone.borrow_mut() = Some(Closure::wrap(Box::new(move || {
+        render(&gl, &angle_loc);
+        web_sys::window()
+            .unwrap()
+            .request_animation_frame(
+                rc.borrow().as_ref().unwrap().as_ref().unchecked_ref()
+            )
+            .unwrap();
+    }) as Box<dyn FnMut()>));
+
+    web_sys::window()
+        .unwrap()
+        .request_animation_frame(
+            rc_clone.borrow().as_ref().unwrap().as_ref().unchecked_ref()
+        )
+        .unwrap();
 }
 
 fn compile_shader(gl: &GL, shader_type: u32, source: &str) -> Result<WebGlShader, String> {
